@@ -1,0 +1,14 @@
+name: blood-cell
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.11
+  - ipykernel                # ← enables kernel in Jupyter
+  - pandas>=2.0.0
+  - matplotlib>=3.7.0
+  - seaborn>=0.13.0
+  - pillow>=10.0.0
+  - scikit-learn>=1.3.0
+  - tensorflow>=2.15.0
+  - pip
