@@ -11,7 +11,7 @@ Follow these steps to configure your development environment.
 
 ### 1. Clone the repository
 ```bash
-git clone https://github.com/<your-team>/blood-cell-classification.git
+git clone https://github.com/n0721059/blood-cell-classification.git
 cd blood-cell-classification
 ```
 
@@ -50,18 +50,18 @@ jupyter lab
 
 ## 💻 VS Code Tips
 1. Open the project folder in VS Code
-2. Install **Python** and **Jupyter** extensions
+2. Install **Python** stable version and **Jupyter** extensions
 3. Press `Cmd+Shift+P` → "Python: Select Interpreter" → choose `./venv/bin/python`
 4. Open any `.ipynb` file — select the "Blood Cell Env" kernel
 
 ## 📥 Download Datasets
 
 ### Normal Cells
-- Source: [Mendeley Dataset (Acevedo et al., 2019)](https://data.mendeley.com/datasets/snkd93bnjr/1)
+- Source: [Mendely Data Set](https://data.mendeley.com/datasets/snkd93bnjr/1)
 - Action: Download → unzip into `data/raw/normal_cells/`
 
 ### Abnormal Cells
-- Source: [BCCD on Kaggle](https://www.kaggle.com/datasets/andrewmvd/blood-cells)
+- Source: [The Cancer Imaging Archive](https://www.googledrive.com)
 - Action: Download → unzip into `data/raw/abnormal_cells/`
 
 > ✅ Final structure:
