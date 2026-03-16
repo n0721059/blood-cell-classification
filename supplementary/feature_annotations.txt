@@ -1,0 +1,431 @@
+================================================================================
+WBC FEATURE SET — ANNOTATION GUIDE  (v3 reduced, 32 features)
+Based on: Tavakoli et al. (2021), Scientific Reports 11:20218
+================================================================================
+
+REGION DEFINITIONS
+------------------
+Ncl   Nucleus             : the segmented nuclear mask pixels
+Roc   Ring of Cytoplasm   : cell mask pixels minus nucleus mask pixels (the cytoplasm ring)
+Cvx   Convex Hull         : smallest convex polygon enclosing the whole cell
+                            used as denominator to normalise for illumination variation
+
+STATISTIC DEFINITIONS
+---------------------
+mean  : average value of the channel across all pixels in that region
+std   : standard deviation of the channel across all pixels (measures texture / spread)
+
+COLOUR CHANNEL DEFINITIONS
+--------------------------
+R     : Red channel (RGB) — raw red light intensity
+G     : Green channel (RGB) — raw green light intensity; correlates strongly with L
+B     : Blue channel (RGB) — raw blue light intensity; dominant in hematoxylin-stained nuclei
+H     : Hue (HSV) — dominant colour angle on the colour wheel (0–360 deg)
+S     : Saturation (HSV) — colour purity; 0 = grey, 1 = vivid colour
+V     : Value / brightness (HSV) — maximum of R, G, B
+L     : Lightness L* (CIE L*a*b*) — perceptual brightness fully decoupled from colour
+A     : a* axis (CIE L*a*b*) — green-to-red opponent colour; negative = green, positive = red
+Bstar : b* axis (CIE L*a*b*) — blue-to-yellow opponent colour; negative = blue, positive = yellow
+Y     : Luma (YCbCr) — brightness approximation; near-identical to L (dropped in v3)
+Cr    : Red-difference chroma (YCbCr) — how much redder than neutral grey
+Cb    : Blue-difference chroma (YCbCr) — how much bluer than neutral grey (dropped in v3)
+
+================================================================================
+NCLCVX MEAN FEATURES  (nucleus brightness and colour, relative to convex hull)
+================================================================================
+
+Feature name: NclCvx_H_mean
+Ncl   Nucleus  → pixels belonging to the segmented nuclear region
+Cvx   Convex hull normalisation  → divided by mean(H in convex hull)
+H     Hue (HSV)  → dominant colour angle; distinguishes purple nucleus from pink cytoplasm
+mean  Average across all nucleus pixels
+Plain language: The average hue of the nucleus, relative to the whole-cell average hue.
+Biology: Useful for detecting cells where nucleus colour diverges strongly from cytoplasm
+         (e.g. erythroblasts late stage where cytoplasm shifts pink while nucleus stays purple).
+
+--------------------------------------------------------------------------------
+
+Feature name: NclCvx_L_mean
+Ncl   Nucleus  → pixels belonging to the segmented nuclear region
+Cvx   Convex hull normalisation  → divided by mean(L in convex hull)
+L     CIE L* lightness  → perceptual brightness, decoupled from colour
+mean  Average across all nucleus pixels
+Plain language: The average brightness of the nucleus, relative to the whole-cell average brightness.
+Biology: Expected to be < 1.0 for all cell types because the nucleus absorbs hematoxylin
+         and stains dark purple-blue, making it darker than the surrounding cytoplasm and
+         background. A value >= 1.0 indicates a likely segmentation or staining error.
+
+--------------------------------------------------------------------------------
+
+Feature name: NclCvx_A_mean
+Ncl   Nucleus  → pixels belonging to the segmented nuclear region
+Cvx   Convex hull normalisation  → divided by mean(A in convex hull)
+A     CIE a* axis  → green-to-red opponent colour
+mean  Average across all nucleus pixels
+Plain language: The average green-red colour tone of the nucleus, relative to the whole-cell average.
+Biology: Typically near-neutral or slightly negative (blue-purple nuclei have low a*).
+         A strongly positive value would indicate unexpected reddish nuclear staining.
+
+--------------------------------------------------------------------------------
+
+Feature name: NclCvx_Bstar_mean
+Ncl   Nucleus  → pixels belonging to the segmented nuclear region
+Cvx   Convex hull normalisation  → divided by mean(b* in convex hull)
+Bstar CIE b* axis  → blue-to-yellow opponent colour; canonical blue-axis feature
+mean  Average across all nucleus pixels
+Plain language: The average blue-yellow colour tone of the nucleus, relative to the whole-cell average.
+Biology: Expected to be negative (more blue than yellow) for all nuclei due to hematoxylin staining.
+         Basophil nuclei show the most strongly negative values. Retained in v3 as the canonical
+         blue-axis representative; Cb_mean dropped (r=0.997 with Bstar_mean).
+
+--------------------------------------------------------------------------------
+
+Feature name: NclCvx_Cr_mean
+Ncl   Nucleus  → pixels belonging to the segmented nuclear region
+Cvx   Convex hull normalisation  → divided by mean(Cr in convex hull)
+Cr    YCbCr red-difference  → how much redder than neutral grey
+mean  Average across all nucleus pixels
+Plain language: The average redness of the nucleus, relative to the whole-cell average redness.
+Biology: Normally low because nuclei stain purple-blue, not red. Elevated values could indicate
+         background contamination or a cell type where nuclear staining has a warm tone.
+
+================================================================================
+NCLCVX STD FEATURES  (nucleus colour texture / internal heterogeneity)
+================================================================================
+
+Feature name: NclCvx_R_std
+Ncl   Nucleus  → pixels belonging to the segmented nuclear region
+Cvx   Convex hull normalisation  → divided by mean(R in convex hull)
+R     Red channel (RGB)  → raw red light intensity
+std   Standard deviation across all nucleus pixels
+Plain language: The spread of red intensity within the nucleus, relative to whole-cell average redness.
+Biology: High values indicate heterogeneous red distribution inside the nucleus, which can
+         reflect condensed chromatin patches or early degranulation artefacts.
+
+--------------------------------------------------------------------------------
+
+Feature name: NclCvx_B_std
+Ncl   Nucleus  → pixels belonging to the segmented nuclear region
+Cvx   Convex hull normalisation  → divided by mean(B in convex hull)
+B     Blue channel (RGB)  → raw blue light intensity
+std   Standard deviation across all nucleus pixels
+Plain language: The spread of blue intensity within the nucleus, relative to whole-cell average blueness.
+Biology: Blue is the dominant staining channel for nuclei. High std indicates heterogeneous
+         chromatin staining — dense heterochromatin patches appear darker blue than open euchromatin.
+         Useful for distinguishing mature condensed nuclei (lymphocyte) from immature open nuclei (ig).
+
+--------------------------------------------------------------------------------
+
+Feature name: NclCvx_H_std
+Ncl   Nucleus  → pixels belonging to the segmented nuclear region
+Cvx   Convex hull normalisation  → divided by mean(H in convex hull)
+H     Hue (HSV)  → dominant colour angle
+std   Standard deviation across all nucleus pixels
+Plain language: The colour variety within the nucleus, relative to whole-cell colour variety.
+Biology: High values mean the nucleus contains pixels of multiple distinct hues, indicating
+         complex chromatin texture or granular inclusions within the nuclear boundary.
+
+--------------------------------------------------------------------------------
+
+Feature name: NclCvx_S_std
+Ncl   Nucleus  → pixels belonging to the segmented nuclear region
+Cvx   Convex hull normalisation  → divided by mean(S in convex hull)
+S     Saturation (HSV)  → colour purity
+std   Standard deviation across all nucleus pixels
+Plain language: The spread of colour saturation within the nucleus, relative to whole-cell saturation.
+Biology: High std means some areas of the nucleus are more vividly stained than others.
+         Elevated in basophils where dense granules create vivid focal staining patches.
+
+--------------------------------------------------------------------------------
+
+Feature name: NclCvx_L_std
+Ncl   Nucleus  → pixels belonging to the segmented nuclear region
+Cvx   Convex hull normalisation  → divided by mean(L in convex hull)
+L     CIE L* lightness  → perceptual brightness; canonical luminance texture feature
+std   Standard deviation across all nucleus pixels
+Plain language: The spread of brightness within the nucleus, relative to whole-cell average brightness.
+Biology: High values indicate high internal contrast within the nucleus — condensed chromatin
+         (dark) next to open chromatin (lighter) produces larger L* variation.
+         Retained in v3 as canonical luminance texture; G_std and Y_std dropped (r > 0.994).
+
+--------------------------------------------------------------------------------
+
+Feature name: NclCvx_A_std
+Ncl   Nucleus  → pixels belonging to the segmented nuclear region
+Cvx   Convex hull normalisation  → divided by mean(A in convex hull)
+A     CIE a* axis  → green-to-red opponent colour
+std   Standard deviation across all nucleus pixels
+Plain language: The spread of green-red colour tone within the nucleus, relative to whole-cell average.
+Biology: High values mean some nuclear pixels are reddish while others are greenish — unusual
+         and may indicate mixed staining artefact or boundary overlap with cytoplasm.
+
+--------------------------------------------------------------------------------
+
+Feature name: NclCvx_Bstar_std
+Ncl   Nucleus  → pixels belonging to the segmented nuclear region
+Cvx   Convex hull normalisation  → divided by mean(b* in convex hull)
+Bstar CIE b* axis  → blue-to-yellow opponent colour; canonical blue-axis texture feature
+std   Standard deviation across all nucleus pixels
+Plain language: The spread of blue-yellow colour tone within the nucleus, relative to whole-cell average.
+Biology: High values indicate uneven blue hematoxylin staining inside the nucleus — characteristic
+         of heterochromatin patterns. Retained in v3 as canonical blue-axis texture; Cb_std dropped (r=0.997).
+
+--------------------------------------------------------------------------------
+
+Feature name: NclCvx_Cr_std
+Ncl   Nucleus  → pixels belonging to the segmented nuclear region
+Cvx   Convex hull normalisation  → divided by mean(Cr in convex hull)
+Cr    YCbCr red-difference  → how much redder than neutral grey
+std   Standard deviation across all nucleus pixels
+Plain language: The spread of redness within the nucleus, relative to whole-cell average redness.
+Biology: High values indicate patchy warm-toned areas inside the nuclear boundary.
+         Low values confirm a uniformly blue-purple nucleus as expected under Giemsa stain.
+
+================================================================================
+ROCCVX MEAN FEATURES  (cytoplasm ring colour, relative to convex hull)
+================================================================================
+
+Feature name: RocCvx_G_mean
+Roc   Ring of Cytoplasm  → cell mask pixels minus nucleus mask pixels
+Cvx   Convex hull normalisation  → divided by mean(G in convex hull)
+G     Green channel (RGB)  → raw green light intensity
+mean  Average across all cytoplasm ring pixels
+Plain language: The average green channel brightness of the cytoplasm, relative to whole-cell average.
+Biology: Correlates with overall cytoplasm brightness. Retained in v3 for RocCvx means as the
+         single RGB representative (G_mean not as redundant here as in NclCvx where L dominates).
+
+--------------------------------------------------------------------------------
+
+Feature name: RocCvx_H_mean
+Roc   Ring of Cytoplasm  → cell mask pixels minus nucleus mask pixels
+Cvx   Convex hull normalisation  → divided by mean(H in convex hull)
+H     Hue (HSV)  → dominant colour angle on the colour wheel
+mean  Average across all cytoplasm ring pixels
+Plain language: The average dominant colour of the cytoplasm ring, relative to whole-cell average hue.
+Biology: Distinguishes pink cytoplasm (neutrophil, H near 0/360) from blue-grey cytoplasm
+         (monocyte, H near 200-240) and pale/near-neutral cytoplasm (lymphocyte).
+
+--------------------------------------------------------------------------------
+
+Feature name: RocCvx_S_mean
+Roc   Ring of Cytoplasm  → cell mask pixels minus nucleus mask pixels
+Cvx   Convex hull normalisation  → divided by mean(S in convex hull)
+S     Saturation (HSV)  → colour purity; 0 = grey, 1 = vivid
+mean  Average across all cytoplasm ring pixels
+Plain language: The average colour vividness of the cytoplasm ring, relative to whole-cell saturation.
+Biology: High in eosinophils (vivid orange granules) and basophils (dense purple granules).
+         Low in lymphocytes (pale, nearly grey cytoplasm) and some neutrophils.
+
+--------------------------------------------------------------------------------
+
+Feature name: RocCvx_L_mean
+Roc   Ring of Cytoplasm  → cell mask pixels minus nucleus mask pixels
+Cvx   Convex hull normalisation  → divided by mean(L in convex hull)
+L     CIE L* lightness  → perceptual brightness; canonical luminance feature
+mean  Average across all cytoplasm ring pixels
+Plain language: The average brightness of the cytoplasm ring, relative to the whole-cell average brightness.
+Biology: Expected to be > 1.0 because cytoplasm is lighter than the nucleus and background combined.
+         Confirms nucleus-cytoplasm brightness contrast when compared against NclCvx_L_mean (which is < 1.0).
+
+--------------------------------------------------------------------------------
+
+Feature name: RocCvx_A_mean
+Roc   Ring of Cytoplasm  → cell mask pixels minus nucleus mask pixels
+Cvx   Convex hull normalisation  → divided by mean(A in convex hull)
+A     CIE a* axis  → green-to-red opponent colour
+mean  Average across all cytoplasm ring pixels
+Plain language: The average pink-to-green colour tone of the cytoplasm, relative to the whole-cell average.
+Biology: High (positive) in eosinophils — orange-red granules push a* strongly positive.
+         Negative or near-zero in monocytes and lymphocytes (blue-grey or pale cytoplasm).
+         One of the most discriminative features for eosinophil identification.
+
+--------------------------------------------------------------------------------
+
+Feature name: RocCvx_Bstar_mean
+Roc   Ring of Cytoplasm  → cell mask pixels minus nucleus mask pixels
+Cvx   Convex hull normalisation  → divided by mean(b* in convex hull)
+Bstar CIE b* axis  → blue-to-yellow opponent colour; canonical blue-axis feature
+mean  Average across all cytoplasm ring pixels
+Plain language: The average blue-yellow colour tone of the cytoplasm ring, relative to whole-cell average.
+Biology: Negative (blue) in basophils where granules spill blue stain into cytoplasm.
+         Near-neutral or positive in eosinophils (orange-yellow cytoplasm).
+         Retained as canonical blue-axis feature; RocCvx_Cb_mean dropped (r=0.985).
+
+--------------------------------------------------------------------------------
+
+Feature name: RocCvx_Cr_mean
+Roc   Ring of Cytoplasm  → cell mask pixels minus nucleus mask pixels
+Cvx   Convex hull normalisation  → divided by mean(Cr in convex hull)
+Cr    YCbCr red-difference  → how much redder than neutral grey
+mean  Average across all cytoplasm ring pixels
+Plain language: The average redness of the cytoplasm ring, relative to the whole-cell average redness.
+Biology: The single most discriminative colour feature in the set. Distinctly elevated in
+         eosinophils (bright orange-red granules). Low in lymphocytes, neutrophils, and monocytes
+         (pale or blue-grey cytoplasm). Also slightly elevated in mature erythroblasts.
+
+================================================================================
+ROCCVX STD FEATURES  (cytoplasm ring colour texture / granule heterogeneity)
+================================================================================
+
+Feature name: RocCvx_R_std
+Roc   Ring of Cytoplasm  → cell mask pixels minus nucleus mask pixels
+Cvx   Convex hull normalisation  → divided by mean(R in convex hull)
+R     Red channel (RGB)  → raw red light intensity
+std   Standard deviation across all cytoplasm ring pixels
+Plain language: The spread of red intensity across the cytoplasm ring, relative to whole-cell average.
+Biology: High in cells with heterogeneously distributed red-staining granules (eosinophils).
+         Low in cells with uniform pale or grey cytoplasm (lymphocytes).
+
+--------------------------------------------------------------------------------
+
+Feature name: RocCvx_B_std
+Roc   Ring of Cytoplasm  → cell mask pixels minus nucleus mask pixels
+Cvx   Convex hull normalisation  → divided by mean(B in convex hull)
+B     Blue channel (RGB)  → raw blue light intensity
+std   Standard deviation across all cytoplasm ring pixels
+Plain language: The spread of blue intensity across the cytoplasm ring, relative to whole-cell average.
+Biology: High in basophils where dense dark-blue granules create strongly heterogeneous blue
+         distribution in the cytoplasm. Low in pale uniform cytoplasm cells.
+
+--------------------------------------------------------------------------------
+
+Feature name: RocCvx_H_std
+Roc   Ring of Cytoplasm  → cell mask pixels minus nucleus mask pixels
+Cvx   Convex hull normalisation  → divided by mean(H in convex hull)
+H     Hue (HSV)  → dominant colour angle
+std   Standard deviation across all cytoplasm ring pixels
+Plain language: The colour variety across the cytoplasm ring, relative to whole-cell colour variety.
+Biology: High in cells with multiple distinct granule colours (mixed granule types in some
+         monocytes). Low in cells with uniformly coloured cytoplasm.
+
+--------------------------------------------------------------------------------
+
+Feature name: RocCvx_S_std
+Roc   Ring of Cytoplasm  → cell mask pixels minus nucleus mask pixels
+Cvx   Convex hull normalisation  → divided by mean(S in convex hull)
+S     Saturation (HSV)  → colour purity
+std   Standard deviation across all cytoplasm ring pixels
+Plain language: The spread of colour saturation across the cytoplasm ring, relative to whole-cell average.
+Biology: High when some cytoplasm areas are vividly coloured (granule clusters) while others
+         are pale. Low in uniformly pale or uniformly vivid cytoplasm.
+
+--------------------------------------------------------------------------------
+
+Feature name: RocCvx_V_std
+Roc   Ring of Cytoplasm  → cell mask pixels minus nucleus mask pixels
+Cvx   Convex hull normalisation  → divided by mean(V in convex hull)
+V     Value / brightness (HSV)  → maximum of R, G, B
+std   Standard deviation across all cytoplasm ring pixels
+Plain language: The spread of HSV brightness across the cytoplasm ring, relative to whole-cell average.
+Biology: High when the cytoplasm has patches of bright and dark regions — granule texture.
+         Note: V_mean was dropped in v3 for NclCvx (redundant with L_mean) but V_std is
+         retained for RocCvx where it captures cytoplasm texture not fully covered by L_std.
+
+--------------------------------------------------------------------------------
+
+Feature name: RocCvx_L_std
+Roc   Ring of Cytoplasm  → cell mask pixels minus nucleus mask pixels
+Cvx   Convex hull normalisation  → divided by mean(L in convex hull)
+L     CIE L* lightness  → perceptual brightness; canonical luminance texture feature
+std   Standard deviation across all cytoplasm ring pixels
+Plain language: The spread of perceptual brightness across the cytoplasm ring, relative to whole-cell average.
+Biology: High when cytoplasm has strong internal brightness contrast — granules (dark) against
+         pale cytoplasm background. Retained in v3 as canonical luminance texture;
+         RocCvx_G_std and RocCvx_Y_std dropped (r = 0.987 and 0.997 with L_std respectively).
+
+--------------------------------------------------------------------------------
+
+Feature name: RocCvx_A_std
+Roc   Ring of Cytoplasm  → cell mask pixels minus nucleus mask pixels
+Cvx   Convex hull normalisation  → divided by mean(A in convex hull)
+A     CIE a* axis  → green-to-red opponent colour
+std   Standard deviation across all cytoplasm ring pixels
+Plain language: The spread of pink-to-green colour tone across the cytoplasm ring, relative to whole-cell average.
+Biology: High in cells where cytoplasm contains both reddish and greenish areas — mixed
+         granule populations. Low when cytoplasm colour is uniform in its red-green balance.
+
+--------------------------------------------------------------------------------
+
+Feature name: RocCvx_Bstar_std
+Roc   Ring of Cytoplasm  → cell mask pixels minus nucleus mask pixels
+Cvx   Convex hull normalisation  → divided by mean(b* in convex hull)
+Bstar CIE b* axis  → blue-to-yellow opponent colour; canonical blue-axis texture feature
+std   Standard deviation across all cytoplasm ring pixels
+Plain language: The spread of blue-yellow colour tone across the cytoplasm ring, relative to whole-cell average.
+Biology: High in basophils where focal dark-blue granule clusters create uneven b* distribution.
+         Retained in v3 as canonical blue-axis texture; RocCvx_Cb_std dropped (r=0.991).
+
+--------------------------------------------------------------------------------
+
+Feature name: RocCvx_Cr_std
+Roc   Ring of Cytoplasm  → cell mask pixels minus nucleus mask pixels
+Cvx   Convex hull normalisation  → divided by mean(Cr in convex hull)
+Cr    YCbCr red-difference  → how much redder than neutral grey
+std   Standard deviation across all cytoplasm ring pixels
+Plain language: The spread of redness across the cytoplasm ring, relative to whole-cell average redness.
+Biology: High when orange-red granules are distributed non-uniformly — patches of high Cr
+         (granule clusters) against low-Cr background. Eosinophil granule texture.
+
+================================================================================
+SHAPE FEATURES  (nucleus geometry — colour-independent)
+================================================================================
+
+Feature name: Circularity
+Formula: P^2 / (4 * pi * A)   where P = nucleus perimeter, A = nucleus area
+Range: >= 1.0  (equals 1.0 for a perfect circle, increases with irregularity)
+Plain language: How far the nucleus departs from a perfect circle.
+                A circle scores exactly 1.0. Any deviation increases the score without limit.
+Biology: Low (1.0–1.3) in lymphocytes — round compact nucleus.
+         High (1.5–3.0) in neutrophils — multi-lobed nucleus connected by thin strands.
+         Intermediate in eosinophils (bi-lobed, ~1.2–2.5) and monocytes (kidney-shaped, ~1.1–1.6).
+         Key check: lymphocyte mean < neutrophil mean. Reversal indicates segmentation error.
+Reference: Tavakoli et al. (2021), Table 1.
+
+--------------------------------------------------------------------------------
+
+Feature name: Convexity
+Formula: P_hull / P   where P_hull = convex hull perimeter, P = nucleus perimeter
+Range: (0, 1]  (equals 1.0 when nucleus has no concave indentations)
+Plain language: How smooth and convex the nucleus boundary is.
+                1.0 means the boundary never curves inward. Lower values mean deeper indentations.
+Biology: High (0.85–1.0) in lymphocytes — smooth round boundary.
+         Low (0.50–0.90) in neutrophils — lobulation creates large gaps between actual
+         perimeter and convex hull perimeter.
+         Key check: lymphocyte mean > neutrophil mean.
+Reference: Hoffbrand & Moss, Essential Haematology 7th ed.
+
+--------------------------------------------------------------------------------
+
+Feature name: Solidity
+Formula: A / A_hull   where A = nucleus area, A_hull = convex hull area
+Range: (0, 1]  (equals 1.0 when nucleus fills its convex hull completely)
+Plain language: How compactly the nucleus fills its own bounding convex shape.
+                1.0 means no gaps or concavities. Lower values mean the nucleus leaves
+                empty space inside its convex hull (inter-lobe gaps in segmented nuclei).
+Biology: High (0.85–1.0) in lymphocytes — compact nucleus, no gaps.
+         Low (0.45–0.88) in neutrophils — inter-lobe bridges create concave gaps that
+         reduce nucleus area relative to its convex hull.
+         Key check: lymphocyte mean > neutrophil mean.
+Reference: Ross & Pawlina, Histology 8th ed., Chapter 13.
+
+================================================================================
+FEATURES REMOVED IN V3  (listed for reference, not present in FEATURE_COLS)
+================================================================================
+
+NclCvx_G_mean   removed: r=0.996 with NclCvx_L_mean   (G approximates L in nucleus)
+NclCvx_S_mean   removed: r=0.983 with NclCvx_Bstar_mean (S and b* both respond to blue staining)
+NclCvx_Cb_mean  removed: r=0.997 with NclCvx_Bstar_mean (Cb and b* encode same blue-axis signal)
+NclCvx_G_std    removed: r=0.994 with NclCvx_L_std
+NclCvx_Y_std    removed: r=0.999 with NclCvx_L_std      (Y luma is near-identical to L)
+NclCvx_V_std    removed: r=0.981 with NclCvx_B_std      (V = max(R,G,B) ~ B in blue nuclei)
+NclCvx_Cb_std   removed: r=0.997 with NclCvx_Bstar_std
+RocCvx_Cb_mean  removed: r=0.985 with RocCvx_Bstar_mean
+RocCvx_G_std    removed: r=0.987 with RocCvx_L_std
+RocCvx_Y_std    removed: r=0.997 with RocCvx_L_std
+RocCvx_Cb_std   removed: r=0.991 with RocCvx_Bstar_std
+
+================================================================================
+END OF FILE
+Original feature set: 43 features
+V3 reduced set:       32 features  (11 removed)
+================================================================================
